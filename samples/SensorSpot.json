@@ -1,0 +1,10 @@
+{
+  "type": "android.gps",
+  "longitude": 36.968860,
+  "latitude": 56.371675,
+  "altitude": 217.5,
+  "bearing": 135.0,
+  "accuracy": 5.2,
+  "speed": 2.8,
+  "time": 1727845963000
+}
