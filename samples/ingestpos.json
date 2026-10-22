@@ -1,0 +1,12 @@
+﻿{
+  "type": "PACKET",
+  "direction": "rx",
+  "packet_type": 3,
+  "route": "F",
+  "SNR": 7.5,
+  "RSSI": -80,
+  "raw": "11007E76...",
+  "origin_id": "A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2",
+  "origin": "PhoneApp",
+  "timestamp": "2026-10-22T12:34:56Z"
+}
