@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using System;
+using System.Text.Json;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 namespace meshbridge.services

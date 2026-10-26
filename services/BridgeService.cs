@@ -77,7 +77,6 @@ namespace meshbridge.services
 
         private async Task MainLoop()
         {
-            ;
             await foreach (var sensorSpot in _reader.ReadAllAsync(_stoppingToken))
             {
                 ServiceEnvelope envelope = await MapToEnvelope(sensorSpot);
@@ -89,7 +88,6 @@ namespace meshbridge.services
         {
 
             NodeInfoData nodeInfo = GetNodeInfo(spot);
-
             ;
             if (_sent.TryGetValue(nodeInfo.NodeId, out NodeInfoSendingEntry? entry)) entry.SeenTime = DateTime.Now;
             else

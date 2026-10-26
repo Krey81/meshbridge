@@ -3,20 +3,22 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Buffers;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading.Tasks;
-
 namespace meshbridge.processors
 {
     public class JsonProcessor<T> : IMqttIngress<T>
     {
-        private static JsonSerializerOptions _serializerOptions => GetOptions();
-
         private readonly ILogger _logger;
 
+        private readonly JsonTypeInfo _jsonTypeInfo;
 
         public JsonProcessor(ILogger logger) 
         { 
             _logger = logger;
+            JsonTypeInfo? typeInfo = AppJsonContext.Default.GetTypeInfo(typeof(T));
+            if (typeInfo == null) throw new ArgumentNullException(nameof(JsonTypeInfo), $"precompiled JsonTypeInfo not found for type {typeof(T).GetType().Name}");
+            _jsonTypeInfo = typeInfo;
         }
 
         public Task<T> Deserialize(string topic, ReadOnlySequence<byte> payload)
@@ -25,7 +27,7 @@ namespace meshbridge.processors
             try
             {
                 Utf8JsonReader reader = new(payload);
-                result = JsonSerializer.Deserialize<T>(ref reader, _serializerOptions);
+                result = (T?)JsonSerializer.Deserialize(ref reader, _jsonTypeInfo);
                 if (result == null) throw new Exception("null result");
             }
             catch (Exception e)
@@ -34,14 +36,6 @@ namespace meshbridge.processors
                 throw;
             }
             return Task.FromResult(result);
-        }
-
-        private static JsonSerializerOptions GetOptions()
-        {
-            return new JsonSerializerOptions()
-            {
-                PropertyNameCaseInsensitive = true
-            };
         }
     }
 }
