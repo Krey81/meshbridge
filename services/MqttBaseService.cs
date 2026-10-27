@@ -3,8 +3,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
+using MQTTnet.Exceptions;
 using MQTTnet.Formatter;
 using System;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 namespace meshbridge.services
@@ -107,13 +109,41 @@ namespace meshbridge.services
                 }
                 catch (OperationCanceledException) { break; }
                 catch (OutOfMemoryException) { throw; }
+                catch (MqttCommunicationException me)
+                {
+                    _logger.LogError("Ошибка связи: {mqtterr}", FormatMqttError(me));
+                    await Task.Delay(_cooldown, _cancellationToken);
+                }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Ошибка MQTT, реконнект...");
+                    _logger.LogError("Ошибка MQTT и реконнект: {msg}", FormatMessageString(e.Message));
                     await Task.Delay(_cooldown, _cancellationToken);
                 }
             }
         }
+
+        private string FormatMqttError(MqttCommunicationException me)
+        {
+            try
+            {
+                if (me.InnerException == null) return FormatMessageString(me.Message);
+                else if (me.InnerException is SocketException se) return string.Join("; ", FormatMessageString(me.Message), FormatSocketError(se));
+                else return string.Join("; ", FormatMessageString(me.Message), FormatMessageString(me.InnerException.Message));
+            }
+            catch (Exception e)
+            {
+                return string.Join('-', "(FormatError)", e.Message, me.Message);
+            }
+        }
+
+        private string FormatSocketError(SocketException se) => string.Format("Socket error '{0}'; {1} ({2}){3}", FormatMessageString(se.Message), se.Source, se.ErrorCode, se.SocketErrorCode.ToString());
+
+        private static string FormatMessageString(string message)
+        {
+            if (message.EndsWith('.')) return message.TrimEnd('.').Trim();
+            else return message;
+        }
+
 
         private MqttProtocolVersion GetProtocol(string protocol)
         {
