@@ -9,6 +9,16 @@
     <PublishAot>true</PublishAot>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <PublishTrimmed>true</PublishTrimmed>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <Title>MeshBridge - json gnss to meshtastic protocol bridge</Title>
+    <Authors>Krey81</Authors>
+    <Description>Protocol bridge from sensors json to meshtastic protobuf</Description>
+    <PackageProjectUrl></PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/Krey81/meshbridge</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>meshcore;meshtastic;gnss;gps;sensor;meshmonitor</PackageTags>
+    <PackageReleaseNotes>under construction</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -41,6 +51,13 @@
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
   
 </Project>
