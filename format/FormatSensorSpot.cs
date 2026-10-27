@@ -20,6 +20,10 @@ namespace meshbridge.format
         /// <remarks>должно быть android.gps для GNSS сенсора</remarks>
         public string Type { get; set; } = string.Empty;
 
+        //TODO нвесить конвертер в native DateTimeOffset
+        /// <summary>
+        /// Unix time milliseconds
+        /// </summary>
         public ulong Time { get; set; }
 
         /// <summary>

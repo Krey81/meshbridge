@@ -12,6 +12,10 @@ using System.Threading.Tasks;
 
 namespace meshbridge.services
 {
+    /// <summary>
+    /// Основной сервис приложения
+    /// </summary>
+    /// <remarks>Читает входящие сообщения из брокера на вход, выполняет преобразования, отправляет в брокер на выход. Периодически шлет NodeInfo</remarks>
     public class BridgeService : BackgroundService 
     {
         private readonly ILogger<BridgeService> _logger;
@@ -26,6 +30,12 @@ namespace meshbridge.services
 
         private CancellationToken _stoppingToken = CancellationToken.None;
 
+        /// <summary>
+        /// Конструктор по DI
+        /// </summary>
+        /// <param name="logger"></param>
+        /// <param name="reader"></param>
+        /// <param name="publisher"></param>
         public BridgeService(
             ILogger<BridgeService> logger,
             ChannelReader<FormatSensorSpot> reader,
@@ -37,6 +47,7 @@ namespace meshbridge.services
             _publisher = publisher;
         }
 
+        ///<inheritdoc/>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _stoppingToken = stoppingToken;
@@ -46,6 +57,10 @@ namespace meshbridge.services
             await Task.WhenAll(sendNodeInfoTask, mainTask);
         }
 
+        /// <summary>
+        /// Фоновый таск для отсылки NodeInfo
+        /// </summary>
+        /// <returns></returns>
         private async Task SendNodeInfoTaskAsync()
         {
             using var timer = new PeriodicTimer(_nodeInfoSendPeriod);
@@ -75,6 +90,10 @@ namespace meshbridge.services
             }
         }
 
+        /// <summary>
+        /// Рабочий цикл
+        /// </summary>
+        /// <returns></returns>
         private async Task MainLoop()
         {
             await foreach (var sensorSpot in _reader.ReadAllAsync(_stoppingToken))
@@ -84,6 +103,11 @@ namespace meshbridge.services
             }
         }
 
+        /// <summary>
+        /// Конвертация форматов
+        /// </summary>
+        /// <param name="spot"></param>
+        /// <returns></returns>
         private async Task<ServiceEnvelope> MapToEnvelope(FormatSensorSpot spot)
         {
 
@@ -107,10 +131,16 @@ namespace meshbridge.services
             return EnvelopeConverter.Position(position);
         }
 
+        /// <summary>
+        /// Формирование NodeInfo
+        /// </summary>
+        /// <param name="spot"></param>
+        /// <returns></returns>
         private NodeInfoData GetNodeInfo(FormatSensorSpot spot)
         {
             return new NodeInfoData()
             {
+                //TODO заменить хэш - сейчас хэш разный после рестарта
                 NodeId = Convert.ToUInt32(spot.UserName.GetHashCode()),
                 ShortName = spot.UserName.Substring(0, 3),
                 LongName = spot.UserName

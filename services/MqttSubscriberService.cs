@@ -4,24 +4,37 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using System;
-using System.Text.Json;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+
 namespace meshbridge.services
 {
-    public sealed class MqttSubscriberService<T> : MqttBaseService
-        where T : class, IUserData
+    /// <summary>
+    /// Сервис подписки mqtt
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public sealed class MqttSubscriberService<T> : MqttBaseService where T : class, IUserData
     {
+        ///<inheritdoc/>
         protected override string GetSectionName() => Constants.BrokerInSectionName;
 
+        ///<inheritdoc/>
         protected override string GetTopic() => "android/sensor/+/gps";
 
+        ///<inheritdoc/>
         protected override bool NeedSubscription() => true;
 
         private readonly IMqttIngress<T> _processor;
 
         private readonly ChannelWriter<T> _writer;
 
+        /// <summary>
+        /// Конструктор по DI
+        /// </summary>
+        /// <param name="logger"></param>
+        /// <param name="config"></param>
+        /// <param name="processor"></param>
+        /// <param name="writer"></param>
         public MqttSubscriberService(
             ILogger<MqttSubscriberService<T>> logger,
             IOptionsMonitor<BrokerConfig> config,
@@ -33,6 +46,7 @@ namespace meshbridge.services
             _writer = writer;
         }
 
+        ///<inheritdoc/>
         protected override async Task OnReceive(MqttApplicationMessageReceivedEventArgs message)
         {
             try

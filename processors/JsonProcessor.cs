@@ -7,12 +7,21 @@ using System.Text.Json.Serialization.Metadata;
 using System.Threading.Tasks;
 namespace meshbridge.processors
 {
-    public class JsonProcessor<T> : IMqttIngress<T>
+    /// <summary>
+    /// Класс препроцессора для входящих сообщений mqtt - для дальнейшего расширения, развития проекта
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public sealed class JsonProcessor<T> : IMqttIngress<T>
     {
         private readonly ILogger _logger;
 
         private readonly JsonTypeInfo _jsonTypeInfo;
 
+        /// <summary>
+        /// Конструктор по DI
+        /// </summary>
+        /// <param name="logger"></param>
+        /// <exception cref="ArgumentNullException"></exception>
         public JsonProcessor(ILogger logger) 
         { 
             _logger = logger;
@@ -21,6 +30,12 @@ namespace meshbridge.processors
             _jsonTypeInfo = typeInfo;
         }
 
+        /// <summary>
+        /// Десерализация
+        /// </summary>
+        /// <param name="topic"></param>
+        /// <param name="payload"></param>
+        /// <returns></returns>
         public Task<T> Deserialize(string topic, ReadOnlySequence<byte> payload)
         {
             T? result = default;

@@ -2,10 +2,19 @@
 using meshbridge.classes;
 using Meshtastic.Protobufs;
 using System;
+
 namespace meshbridge
 {
+    /// <summary>
+    /// Конвертер в ServiceEnvelope protobuf
+    /// </summary>
     public static class EnvelopeConverter
     {
+        /// <summary>
+        /// Формирует ServiceEnvelope из NodeInfoData
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
         public static ServiceEnvelope NodeInfo(NodeInfoData args)
         {
             User user = new User()
@@ -34,6 +43,11 @@ namespace meshbridge
             return Envelope(packet);
         }
 
+        /// <summary>
+        /// Формирует ServiceEnvelope из PositionData
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
         public static ServiceEnvelope Position(PositionData args)
         {
             Position pos = new()
@@ -62,6 +76,12 @@ namespace meshbridge
             return Envelope(packet);
         }
 
+        //TODO посмотреть что еще полезного можно впендюрить
+        /// <summary>
+        /// Добавление прочей инфы в ServiceEnvelope
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <returns></returns>
         private static ServiceEnvelope Envelope(MeshPacket packet)
         {
             return new()
