@@ -59,5 +59,9 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include=".github\workflows\docker-publish.yml" />
+  </ItemGroup>
   
 </Project>
