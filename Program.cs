@@ -4,7 +4,6 @@ using meshbridge.interfaces;
 using meshbridge.processors;
 using meshbridge.services;
 using Meshtastic.Protobufs;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -51,11 +50,6 @@ namespace meshbridge
                 Log.Information("Остановка сервиса MeshBridge...");
                 await Log.CloseAndFlushAsync();
             }
-
-
-            //Console.WriteLine(Convert.ToHexString(EnvelopeConverter.NodeInfo(nodeInfo).ToByteArray()));
-            //Console.WriteLine(Convert.ToHexString(EnvelopeConverter.Position(position).ToByteArray()));
-            ;
         }
 
         private static IMqttEgress<ServiceEnvelope> egressFactory(IServiceProvider provider)
@@ -77,14 +71,13 @@ namespace meshbridge
 
         private static void ConfigureOptions(HostApplicationBuilder builder)
         {
-            ConfigureOption<BrokerConfig>(builder, Constants.BrokerInSectionName);
-            ConfigureOption<BrokerConfig>(builder, Constants.BrokerOutSectionName);
+            ConfigureBroker(builder, Constants.BrokerInSectionName);
+            ConfigureBroker(builder, Constants.BrokerOutSectionName);
         }
 
-        private static void ConfigureOption<T>(HostApplicationBuilder builder, string sectionName) where T : class
+        private static void ConfigureBroker(HostApplicationBuilder builder, string sectionName)
         {
-            IConfigurationSection section = builder.Configuration.GetSection(sectionName);
-            builder.Services.Configure<T>(sectionName, section);
+            builder.Services.Configure<BrokerConfig>(sectionName, builder.Configuration.GetSection(sectionName));
         }
 
         private static void ConfigureLogging(HostApplicationBuilder builder)
