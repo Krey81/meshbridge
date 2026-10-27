@@ -1,0 +1,50 @@
+services:
+  serial-bridge:
+    image: ghcr.io/yeraze/meshtastic-serial-bridge:latest
+    container_name: meshtastic-serial-bridge
+    devices:
+      - /opt/dev/meshtastic:/dev/ttyACM0
+    environment:
+      - SERIAL_DEVICE=/dev/ttyACM0
+      - BAUD_RATE=115200
+      - TCP_PORT=4403
+    ports:
+      - "4403:4403"
+    restart: unless-stopped
+
+  meshcore-proxy:
+    image: ghcr.io/rgregg/meshcore-proxy:latest
+    container_name: meshcore-proxy
+    devices:
+      - /opt/dev/meshcore-proxy:/dev/ttyACM1
+    environment:
+      - SERIAL_PORT=/dev/ttyACM1
+      - TCP_PORT=5000
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+  meshmonitor:
+    image: ghcr.io/yeraze/meshmonitor:latest
+    container_name: meshmonitor
+    environment:
+      - ALLOWED_ORIGINS=https://selfhosted  #your site
+      - BASE_URL=/meshmonitor
+      - TRUST_PROXY=true
+      - COOKIE_SECURE=true
+      - MESHTASTIC_NODE_IP=serial-bridge
+      - SESSION_SECRET=censored #your secret 
+      - NODE_ENV=production
+    ports:
+      - "8081:3001"  # web-ui
+      - "4983:4983"  # meshcore virtual node export
+      - "1884:1883"  # mqtt broker, ServiceEnvelope (protobuf Meshtastic)
+    volumes:
+      - meshmonitor-data:/data
+    depends_on:
+      - serial-bridge
+      - meshcore-proxy
+    restart: unless-stopped
+
+volumes:
+  meshmonitor-data:
