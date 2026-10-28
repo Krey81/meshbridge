@@ -16,7 +16,64 @@ SensorSpot--mqtt-->broker_in--json-->meshbridge--mqtt-->broker_out--protobuf-->M
 
 # Установка
 
-to be filled...
+## mqtt внешний (на примере mosquitto)
+
+в файл /etc/mosquitto/passwd записываем креды
+```
+someuser:somepassword
+```
+
+создать файл /etc/mosquitto/conf.d/rover.conf для настройки параметров внешнего брокера
+
+```ini
+listener 1883 0.0.0.0
+allow_anonymous false
+password_file /etc/mosquitto/passwd
+```
+
+
+## docker compose
+
+- Создаем папку 
+- Скачиваем в нее docker-compose.yml из samples
+- Редактируем под себя
+- Раскаываем
+
+```bash
+docker compose up -d
+```
+
+# Настройка SensorSpot
+
+## Настрйки
+
+![image](doc/images/SensorSpot/settingss.png)
+
+- Broker adress - ваш хост, досупный снаружи
+- Broker port - порт внешнего брокера
+- Topic = android/sensor/rovername - вместо rovername подставляем желаемое имя метки на карте
+- Dedicated topics - должно быть включено
+- Connection Timeout - выставляем в максимум 20 (секунд)
+- Credentials - должно быть включено
+- Username - логин к внешнему брокеру
+- Password - пароль к внешнему брокеру
+
+## Сенсоры
+
+![image](doc/images/SensorSpot/sensors.jpg)
+
+- на вкладке Sensors в самом низу включить GPS
+- проверик topic
+
+# Настройка исчточника в MeshMonitor
+
+![image](doc/images/meshmonitor-add.png)
+
+- добавить источник Embedded MQTT Broker
+- имя - желаемое имя источника
+- Username = rover - логин на внутреннний брокер 
+- Password = roverpassword - пароль на внутрениий брокер
+- Root topic - оставить msh
 
 # Ссылки
 

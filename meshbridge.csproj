@@ -64,5 +64,9 @@
   <ItemGroup>
     <None Include=".github\workflows\docker-publish.yml" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="doc\images\SensorSpot\" />
+  </ItemGroup>
   
 </Project>
