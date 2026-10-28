@@ -18,6 +18,12 @@ namespace meshbridge.services
     /// <remarks>Читает входящие сообщения из брокера на вход, выполняет преобразования, отправляет в брокер на выход. Периодически шлет NodeInfo</remarks>
     public class BridgeService : BackgroundService 
     {
+        //TODO вынести в конфиг
+        /// <summary>
+        /// Задержка в случае проблем
+        /// </summary>
+        private readonly TimeSpan _cooldown = TimeSpan.FromSeconds(5);
+
         private readonly ILogger<BridgeService> _logger;
 
         private readonly ChannelReader<FormatSensorSpot> _reader;
@@ -82,7 +88,12 @@ namespace meshbridge.services
             try
             {
                 await _publisher.Publish(EnvelopeConverter.NodeInfo(sendingInfo.NodeInfo), _stoppingToken);
-                _logger.LogDebug("{service}: node info for {user} sent", nameof(BridgeService), sendingInfo.NodeInfo.LongName);
+                _logger.LogDebug(
+                    "{service}: отправлен пакет NodeInfo для {user} ({nodeId})", 
+                    nameof(BridgeService), 
+                    sendingInfo.NodeInfo.LongName,
+                    string.Format("{0:x4}", sendingInfo.NodeInfo.NodeId)
+                );
             }
             finally
             {
@@ -98,10 +109,34 @@ namespace meshbridge.services
         {
             await foreach (var sensorSpot in _reader.ReadAllAsync(_stoppingToken))
             {
-                ServiceEnvelope envelope = await MapToEnvelope(sensorSpot);
-                await _publisher.Publish(envelope, _stoppingToken);
+                ServiceEnvelope envelope;
+
+                try
+                {
+                    envelope = await MapToEnvelope(sensorSpot);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError("{servicre}: ошибка преобразования в ServiceEnvelope: {err}", nameof(BridgeService), e.Message);
+                    await Task.Delay(_cooldown, _stoppingToken);
+                    continue;
+                }
+
+                try
+                {
+                    await _publisher.Publish(envelope, _stoppingToken);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError("{servicre}: не удалось отправить пакет, паблишер отвалился: {err}", nameof(BridgeService), e.Message);
+                    await Task.Delay(_cooldown, _stoppingToken);
+                    continue;
+                }
             }
         }
+
+        //TODO add generic helper
+        //private async Task<ServiceEnvelope> TryMap()
 
         /// <summary>
         /// Конвертация форматов
@@ -110,9 +145,8 @@ namespace meshbridge.services
         /// <returns></returns>
         private async Task<ServiceEnvelope> MapToEnvelope(FormatSensorSpot spot)
         {
-
             NodeInfoData nodeInfo = GetNodeInfo(spot);
-            ;
+
             if (_sent.TryGetValue(nodeInfo.NodeId, out NodeInfoSendingEntry? entry)) entry.SeenTime = DateTime.Now;
             else
             {
@@ -140,11 +174,25 @@ namespace meshbridge.services
         {
             return new NodeInfoData()
             {
-                //TODO заменить хэш - сейчас хэш разный после рестарта
-                NodeId = Convert.ToUInt32(spot.UserName.GetHashCode()),
+                NodeId = GetStableHash(spot.UserName),
                 ShortName = spot.UserName.Substring(0, 3),
                 LongName = spot.UserName
             };
+        }
+
+        /// <summary>
+        /// простой стабильный алгоритм хэша
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static uint GetStableHash(string s)
+        {
+            unchecked
+            {
+                uint hash = 2166136261;
+                foreach (char c in s) hash = (hash ^ c) * 16777619;
+                return hash;
+            }
         }
     }
 }

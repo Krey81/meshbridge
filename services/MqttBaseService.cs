@@ -61,6 +61,8 @@ namespace meshbridge.services
         /// </summary>
         protected readonly BrokerConfig _brokerConfig;
 
+        private TaskCompletionSource? _disconnectTcs;
+
         /// <summary>
         /// Конструктор
         /// </summary>
@@ -83,6 +85,12 @@ namespace meshbridge.services
             _cancellationToken = stoppingToken;
             _mqttClient = _mqttFactory.CreateMqttClient();
             _mqttClient.ApplicationMessageReceivedAsync += OnReceive;
+            _mqttClient.DisconnectedAsync += async e =>
+            {
+                _logger.LogWarning("{service}: соединение разорвано (причина: {reason})", GetType().Name, e.Reason);
+                _disconnectTcs?.TrySetResult();
+                await Task.CompletedTask;
+            };
 
             var options = new MqttClientOptionsBuilder()
                 .WithTcpServer(_brokerConfig.Host , _brokerConfig.Port)
@@ -95,6 +103,8 @@ namespace meshbridge.services
             {
                 try
                 {
+                    _disconnectTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
                     MqttClientConnectResult conResult = await _mqttClient.ConnectAsync(options, _cancellationToken);
                     if (conResult.ResultCode != MqttClientConnectResultCode.Success)
                     {
@@ -105,7 +115,17 @@ namespace meshbridge.services
                     else _logger.LogInformation("{service}: connected to {host}:{port}", GetType().Name, _brokerConfig.Host, _brokerConfig.Port);
 
                     if (NeedSubscription()) await Subscribe();
-                    await Task.Delay(Timeout.Infinite, _cancellationToken);
+
+                    await Task.WhenAny(
+                        Task.Delay(Timeout.Infinite, _cancellationToken),
+                        _disconnectTcs.Task
+                    );
+
+                    if (_cancellationToken.IsCancellationRequested) break;
+                    _logger.LogInformation("{service}: реконнект через {sec} сек...", GetType().Name, _cooldown.TotalSeconds);
+                    if (_mqttClient.IsConnected) await _mqttClient.DisconnectAsync();
+                    await Task.Delay(_cooldown, _cancellationToken);
+                    continue;
                 }
                 catch (OperationCanceledException) { break; }
                 catch (OutOfMemoryException) { throw; }
@@ -120,6 +140,7 @@ namespace meshbridge.services
                     await Task.Delay(_cooldown, _cancellationToken);
                 }
             }
+            _logger.LogInformation("{service}: завершился", GetType().Name);
         }
 
         private string FormatMqttError(MqttCommunicationException me)

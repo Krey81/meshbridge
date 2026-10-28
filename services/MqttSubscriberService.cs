@@ -57,7 +57,6 @@ namespace meshbridge.services
                 if (!CheckTopic(message.ApplicationMessage.Topic, out user)) return;
 
                 T dataIn = await _processor.Deserialize(topic, message.ApplicationMessage.Payload);
-                if (dataIn.Equals("android.gps")) return;
 
                 dataIn.UserName = user;
                 _logger.LogDebug("{service}: получен пакет от {user} '{descr}'", GetType().Name, user, dataIn.ToString());

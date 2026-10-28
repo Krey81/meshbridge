@@ -3,6 +3,7 @@ using meshbridge.interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -51,8 +52,19 @@ namespace meshbridge.services
         /// <returns></returns>
         public async Task Publish(T payload, CancellationToken cancellationToken)
         {
-            byte[] raw = await _processor.Serialize(string.Empty, payload);
-            await PublishAsync(raw, cancellationToken);
+            try
+            {
+                byte[] raw = await _processor.Serialize(string.Empty, payload);
+                if (raw.Length == 0) throw new Exception(string.Format("0 байт получено от процессора {0}", _processor.GetType().Name));
+
+                await PublishAsync(raw, cancellationToken);
+                _logger.LogDebug("{service}: отправлено {cnt} байт", GetType().Name, raw.Length);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("{service}: ошибка отправки '{err}'", GetType().Name, e.Message);
+                throw;
+            }
         }
     }
 }
