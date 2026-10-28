@@ -11,6 +11,7 @@
     <PublishTrimmed>true</PublishTrimmed>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Title>MeshBridge - json gnss to meshtastic protocol bridge</Title>
+    <Version>1.0.1</Version>
     <Authors>Krey81</Authors>
     <Description>Protocol bridge from sensors json to meshtastic protobuf</Description>
     <PackageProjectUrl></PackageProjectUrl>

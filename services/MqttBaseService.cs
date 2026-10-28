@@ -93,55 +93,69 @@ namespace meshbridge.services
             };
 
             var options = new MqttClientOptionsBuilder()
-                .WithTcpServer(_brokerConfig.Host , _brokerConfig.Port)
+                .WithTcpServer(_brokerConfig.Host, _brokerConfig.Port)
                 .WithCredentials(_brokerConfig.User, _brokerConfig.Password)
                 .WithProtocolVersion(GetProtocol(_brokerConfig.Protocol))
                 .WithClientId($"meshbridge-{Guid.NewGuid()}")
                 .Build();
 
-            while (!_cancellationToken.IsCancellationRequested)
+            try
             {
-                try
+                while (!_cancellationToken.IsCancellationRequested)
                 {
-                    _disconnectTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-
-                    MqttClientConnectResult conResult = await _mqttClient.ConnectAsync(options, _cancellationToken);
-                    if (conResult.ResultCode != MqttClientConnectResultCode.Success)
+                    try
                     {
-                        _logger.LogInformation("{service}: {reason}", GetType().Name, GetReason(conResult));
+                        _disconnectTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                        MqttClientConnectResult conResult = await _mqttClient.ConnectAsync(options, _cancellationToken);
+                        if (conResult.ResultCode != MqttClientConnectResultCode.Success)
+                        {
+                            _logger.LogInformation("{service}: {reason}", GetType().Name, GetReason(conResult));
+                            await Task.Delay(_cooldown, _cancellationToken);
+                            continue;
+                        }
+
+                        _logger.LogInformation("{service}: connected to {host}:{port}", GetType().Name, _brokerConfig.Host, _brokerConfig.Port);
+
+                        if (NeedSubscription()) await Subscribe();
+
+                        await Task.WhenAny(
+                            Task.Delay(Timeout.Infinite, _cancellationToken),
+                            _disconnectTcs.Task
+                        );
+
+                        if (_cancellationToken.IsCancellationRequested) break;
+                        _logger.LogInformation("{service}: реконнект через {sec} сек...", GetType().Name, _cooldown.TotalSeconds);
+                        if (_mqttClient.IsConnected) await _mqttClient.DisconnectAsync();
                         await Task.Delay(_cooldown, _cancellationToken);
-                        continue;
                     }
-                    else _logger.LogInformation("{service}: connected to {host}:{port}", GetType().Name, _brokerConfig.Host, _brokerConfig.Port);
-
-                    if (NeedSubscription()) await Subscribe();
-
-                    await Task.WhenAny(
-                        Task.Delay(Timeout.Infinite, _cancellationToken),
-                        _disconnectTcs.Task
-                    );
-
-                    if (_cancellationToken.IsCancellationRequested) break;
-                    _logger.LogInformation("{service}: реконнект через {sec} сек...", GetType().Name, _cooldown.TotalSeconds);
-                    if (_mqttClient.IsConnected) await _mqttClient.DisconnectAsync();
-                    await Task.Delay(_cooldown, _cancellationToken);
-                    continue;
-                }
-                catch (OperationCanceledException) { break; }
-                catch (OutOfMemoryException) { throw; }
-                catch (MqttCommunicationException me)
-                {
-                    _logger.LogError("Ошибка связи: {mqtterr}", FormatMqttError(me));
-                    await Task.Delay(_cooldown, _cancellationToken);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError("Ошибка MQTT и реконнект: {msg}", FormatMessageString(e.Message));
-                    await Task.Delay(_cooldown, _cancellationToken);
+                    catch (OperationCanceledException) { break; }
+                    catch (OutOfMemoryException) { throw; }
+                    catch (MqttCommunicationException me)
+                    {
+                        _logger.LogError("Ошибка связи: {mqtterr}", FormatMqttError(me));
+                        await Task.Delay(_cooldown, _cancellationToken);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogError("Ошибка MQTT и реконнект: {msg}", FormatMessageString(e.Message));
+                        await Task.Delay(_cooldown, _cancellationToken);
+                    }
                 }
             }
-            _logger.LogInformation("{service}: завершился", GetType().Name);
+            catch (OperationCanceledException) { }
+            finally
+            {
+                _logger.LogInformation("{service}: работа остановлена", GetType().Name);
+
+                if (_mqttClient != null)
+                {
+                    _mqttClient.ApplicationMessageReceivedAsync -= OnReceive;
+                    _mqttClient.Dispose();
+                }
+            }
         }
+
 
         private string FormatMqttError(MqttCommunicationException me)
         {
