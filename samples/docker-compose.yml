@@ -28,22 +28,39 @@ services:
     image: ghcr.io/yeraze/meshmonitor:latest
     container_name: meshmonitor
     environment:
-      - ALLOWED_ORIGINS=https://selfhosted  #your site
+      - ALLOWED_ORIGINS=https://selfhosted    # your site
       - BASE_URL=/meshmonitor
       - TRUST_PROXY=true
       - COOKIE_SECURE=true
       - MESHTASTIC_NODE_IP=serial-bridge
-      - SESSION_SECRET=censored #your secret 
+      - SESSION_SECRET=censored               # your secret
       - NODE_ENV=production
     ports:
       - "8081:3001"  # web-ui
       - "4983:4983"  # meshcore virtual node export
-      - "1884:1883"  # mqtt broker, ServiceEnvelope (protobuf Meshtastic)
+      - "1884:1883"  # mqtt broker_in to mqtt broker_out
     volumes:
       - meshmonitor-data:/data
     depends_on:
       - serial-bridge
       - meshcore-proxy
+    restart: unless-stopped
+
+  meshbridge:
+    image: ghcr.io/krey81/meshbridge:latest
+    container_name: meshbridge
+    environment:
+      - broker-in__Host=192.168.155.1         # host for external broker, available from docker
+      - broker-in__Port=1883
+      - broker-in__User=someuser              # login for external broker 
+      - broker-in__Password=somepassword      # password for external broker
+
+      - broker-out__Host=meshmonitor
+      - broker-out__Port=1883
+      - broker-out__User=rover                # same as meshmonitor source Username
+      - broker-out__Password=roverpassword    # same as meshmonitor source Password
+    depends_on:
+      - meshmonitor
     restart: unless-stopped
 
 volumes:
